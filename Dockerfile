@@ -1,11 +1,12 @@
-FROM python:3.10-slim
+FROM python:3.10-bookworm
 
-# Install dependensi sistem yang kompatibel dengan Debian terbaru untuk Playwright & Chromium
+WORKDIR /app
+
+# Install pustaka sistem esensial untuk Chromium headless
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     gnupg \
-    libglib2.0-0 \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -16,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libexpat1 \
     libfontconfig1 \
     libgbm1 \
-    libgdk-pixbuf-2.0-0 \
+    libglib2.0-0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libx11-6 \
@@ -37,14 +38,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install browser Chromium untuk Playwright
+# Hanya install browser chromium tanpa command install-deps yang error
 RUN playwright install chromium
-RUN playwright install-deps chromium
 
 COPY . .
 
