@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
-# Install dependensi sistem yang dibutuhkan Playwright & Chromium
-RUN apt-get update && apt-get install -y \
+# Install dependensi sistem yang kompatibel dengan Debian terbaru untuk Playwright & Chromium
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     gnupg \
@@ -16,8 +16,7 @@ RUN apt-get update && apt-get install -y \
     libexpat1 \
     libfontconfig1 \
     libgbm1 \
-    libgconf-2-4 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libx11-6 \
@@ -32,9 +31,8 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     libxrender1 \
     libxss1 \
-    libxtst1 \
+    libxtst6 \
     fonts-liberation \
-    libappindicator3-1 \
     xdg-utils \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
