@@ -2,7 +2,7 @@ FROM python:3.10-bookworm
 
 WORKDIR /app
 
-# Install pustaka sistem esensial untuk Chromium headless
+# Tambahkan libxkbcommon0 ke dalam daftar instalasi apt-get
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libxss1 \
     libxtst6 \
+    libxkbcommon0 \
     fonts-liberation \
     xdg-utils \
     libasound2 \
@@ -41,7 +42,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Hanya install browser chromium tanpa command install-deps yang error
 RUN playwright install chromium
 
 COPY . .
