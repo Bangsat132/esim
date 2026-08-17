@@ -5,23 +5,20 @@ import asyncio
 import re
 import aiohttp
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from playwright.async_api import async_playwright
 
-# Konfigurasi Log agar muncul di terminal
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 TOKEN = "8667041464:AAEQKaDu1-JR7IwUOnnH-YNKUPXm6Hwlnw0"
 GROUP_ID = -1003971893833
 
-# Inisialisasi FastAPI & Telegram App
 app = FastAPI()
 telegram_app = None
 
-# Fungsi sensor 3 karakter terakhir
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
     return text[:-3] + "***"
@@ -224,35 +221,36 @@ async def process_xl_esim(chat_id, status_callback):
             await status_callback("📱 [LOG: 6/7] Menunggu dan memilih nomor eSIM...")
             
             try:
-                await page.wait_for_selector('input[type="radio"], text=/08/', timeout=25000)
+                await page.wait_for_selector('input[type="radio"], label, .number-card, text=/08/', timeout=30000)
             except Exception:
-                logger.warning("Elemen nomor tidak terdeteksi via wait_for_selector, mencoba lanjut...")
+                logger.warning("Timeout menunggu elemen pilihan nomor, mencoba lanjut paksa via evaluate...")
 
-            await asyncio.sleep(2) 
+            await asyncio.sleep(3) 
             
             await page.evaluate("""() => {
-                const boxes = Array.from(document.querySelectorAll('input[type="radio"]'));
-                if (boxes.length > 0) {
-                    boxes[0].checked = true;
-                    boxes[0].click();
-                    boxes[0].dispatchEvent(new Event('change', { bubbles: true }));
-                } else {
-                    const allElements = Array.from(document.querySelectorAll('div, label, span')).filter(el => {
-                        return el.innerText && el.innerText.trim().startsWith('08') && el.innerText.length >= 10 && el.innerText.length <= 15 && el.children.length === 0;
-                    });
-                    if (allElements.length > 0) {
-                        allElements[0].click();
-                    }
+                const radios = Array.from(document.querySelectorAll('input[type="radio"]'));
+                if (radios.length > 0) {
+                    radios[0].checked = true;
+                    radios[0].click();
+                    radios[0].dispatchEvent(new Event('change', { bubbles: true }));
+                    return;
+                }
+                const candidates = Array.from(document.querySelectorAll('div, label, span, button')).filter(el => {
+                    const text = el.innerText ? el.innerText.trim() : '';
+                    return text.startsWith('08') && text.length >= 10 && text.length <= 15 && el.children.length <= 2;
+                });
+                if (candidates.length > 0) {
+                    candidates[0].click();
                 }
             }""")
 
             logger.info("Lanjut ke QR...")
             await status_callback("📤 [LOG: 7/7] Menekan tombol Lanjut...")
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
 
             await page.evaluate("""() => {
-                const btns = Array.from(document.querySelectorAll('button'));
-                const target = btns.find(b => b.innerText && (b.innerText.toLowerCase().includes('lanjut') || b.innerText.toLowerCase().includes('konfirmasi')));
+                const btns = Array.from(document.querySelectorAll('button, div[role="button"]'));
+                const target = btns.find(b => b.innerText && (b.innerText.toLowerCase().includes('lanjut') || b.innerText.toLowerCase().includes('konfirmasi') || b.innerText.toLowerCase().includes('pilih')));
                 if (target) {
                     target.click();
                 }
@@ -283,6 +281,10 @@ async def process_xl_esim(chat_id, status_callback):
             return debug_path, str(e), None, None, None, None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Pastikan perintah benar-benar datang dari pesan teks /start
+    if not update.message or not update.message.text:
+        return
+    
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
     chat_id = update.effective_chat.id
@@ -333,14 +335,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
-# Endpoint Webhook FastAPI untuk Railway
+# Endpoint Webhook FastAPI yang aman dari trigger palsu/ping kosong
 @app.post("/")
 async def webhook(request: Request):
     global telegram_app
-    data = await request.json()
-    update = Update.de_json(data, telegram_app.bot)
-    await telegram_app.process_update(update)
+    try:
+        data = await request.json()
+        # Filter ketat: Pastikan data update memiliki struktur pesan Telegram yang valid
+        if "message" in data and "text" in data["message"]:
+            update = Update.de_json(data, telegram_app.bot)
+            if update and update.message:
+                await telegram_app.process_update(update)
+    except Exception as e:
+        logger.error(f"Error pada webhook: {e}")
     return {"status": "ok"}
+
+@app.get("/")
+async def health_check():
+    return Response(content="Bot is running smoothly!", status_code=200)
 
 @app.on_event("startup")
 async def startup_event():
