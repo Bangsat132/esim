@@ -314,6 +314,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Kode PUK : {sensor_text(pk)}\n"
                 f"SM-DP+ Address : {sm}\n"
                 f"Activation Code : {sensor_text(ac)}\n\n"
+                f"Dibuat oleh: {username}\n"
                 "CREATED : @forariey\n"
                 "Donation : Dana : 082151916181"
             )
