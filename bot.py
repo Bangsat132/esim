@@ -130,10 +130,10 @@ class MailTMBot:
                                         extracted_info = (
                                             "✅ Berhasil Claim Esim 50GB 7Hari\n\n"
                                             "🧨 Detail Esim Kamu\n"
-                                            f"MSISDN\t: {clean_msisdn}\n"
-                                            f"Kode PUK\t: {clean_puk}\n"
-                                            f"SM-DP+ Address\t: {clean_smdp}\n"
-                                            f"Activation Code\t: {clean_act}\n\n"
+                                            f"`MSISDN          : {clean_msisdn}`\n"
+                                            f"`Kode PUK        : {clean_puk}`\n"
+                                            f"`SM-DP+ Address  : {clean_smdp}`\n"
+                                            f"`Activation Code : {clean_act}`\n\n"
                                             "CREATED : @forariey"
                                         )
                                         return extracted_info, clean_msisdn, clean_puk, clean_smdp, clean_act
@@ -330,10 +330,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ms:
                 grup_text = (
                     f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
-                    f"MSISDN : {sensor_text(ms)}\n"
-                    f"Kode PUK : {sensor_text(pk)}\n"
-                    f"SM-DP+ Address : {sm}\n"
-                    f"Activation Code : {sensor_text(ac)}\n\n"
+                    f"`MSISDN          : {sensor_text(ms)}`\n"
+                    f"`Kode PUK        : {sensor_text(pk)}`\n"
+                    f"`SM-DP+ Address  : {sm}`\n"
+                    f"`Activation Code : {sensor_text(ac)}`\n\n"
                     f"Dibuat oleh: {username}\n"
                     "CREATED : @forariey\n"
                     "Donation : Dana : 082151916181"
@@ -403,10 +403,10 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             grup_text = (
                 f"Halo {username}\n\nEsim berhasil dibuat (Loop ke-{success_count})\n\nDetail eSIM Kamu\n"
-                f"MSISDN : {sensor_text(ms)}\n"
-                f"Kode PUK : {sensor_text(pk)}\n"
-                f"SM-DP+ Address : {sm}\n"
-                f"Activation Code : {sensor_text(ac)}\n\n"
+                f"`MSISDN          : {sensor_text(ms)}`\n"
+                f"`Kode PUK        : {sensor_text(pk)}`\n"
+                f"`SM-DP+ Address  : {sm}`\n"
+                f"`Activation Code : {sensor_text(ac)}`\n\n"
                 f"Dibuat oleh: {username}\n"
                 "CREATED : @forariey\n"
                 "Donation : Dana : 082151916181"
