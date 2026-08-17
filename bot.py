@@ -314,7 +314,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if path and "esim_" in path and os.path.exists(path):
             caption = info
-            keyboard_claim = [[InlineKeyboardButton("🧩 Register Biometrik", url="https://registrasi.xl.co.id/biometric")]]
+            keyboard_claim = [[InlineKeyboardButton("🧩 Register Biometrik", url="https://registrasi.xl.co.id")]]
             reply_markup_claim = InlineKeyboardMarkup(keyboard_claim)
             await context.bot.send_photo(
                 chat_id=chat_id, 
