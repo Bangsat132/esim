@@ -125,13 +125,13 @@ class MailTMBot:
                                         clean_act = act_code.group(1).strip() if act_code else '-'
                                         
                                         extracted_info = (
-                                            "✅ Berhasil Claim Esim 50GB 7Hari\n\n"
-                                            "🧨 Detail Esim Kamu\n"
-                                            "`MSISDN    : " + clean_msisdn + "\n"
-                                            "PUK       : " + clean_puk + "\n"
-                                            "Address   : " + clean_smdp + "\n"
-                                            "Activation: " + clean_act + "`\n\n"
-                                            "CREATED : @forariey"
+                                            "✅ <b>Berhasil Claim Esim 50GB 7Hari</b>\n\n"
+                                            "🧨 <b>Detail Esim Kamu</b>\n"
+                                            "<pre>MSISDN     : " + clean_msisdn + "\n"
+                                            "Kode PUK   : " + clean_puk + "\n"
+                                            "Address    : " + clean_smdp + "\n"
+                                            "Activation : " + clean_act + "\n\n"
+                                            "CREATED    : @forariey</pre>"
                                         )
                                         return extracted_info, clean_msisdn, clean_puk, clean_smdp, clean_act
                 except Exception as e:
@@ -304,7 +304,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         async def update_status(text):
             try:
-                await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="Markdown")
+                await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="HTML")
             except Exception:
                 pass
 
@@ -320,22 +320,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=chat_id, 
                 photo=open(path, 'rb'), 
                 caption=caption, 
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=reply_markup_claim
             )
             
             if ms:
                 grup_text = (
-                    f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
-                    "`MSISDN    : " + sensor_text(ms) + "\n"
-                    "PUK       : " + sensor_text(pk) + "\n"
-                    "Address   : " + sm + "\n"
-                    "Activation: " + sensor_text(ac) + "`\n\n"
-                    f"Dibuat oleh: {username}\n"
-                    "CREATED : @forariey\n"
-                    "Donation : Dana : 082151916181"
+                    f"👤 Halo {username}\n\n"
+                    "✅ <b>Esim Berhasil Dibuat</b>\n\n"
+                    "🧨 <b>Detail eSIM Kamu</b>\n"
+                    "<pre>MSISDN     : " + sensor_text(ms) + "\n"
+                    "Kode PUK   : " + sensor_text(pk) + "\n"
+                    "Address    : " + sm + "\n"
+                    "Activation : " + sensor_text(ac) + "\n\n"
+                    "CREATED    : @forariey\n"
+                    "Donation   : 082151916181</pre>"
                 )
-                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, parse_mode="Markdown", reply_markup=reply_markup_claim)
+                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, parse_mode="HTML", reply_markup=reply_markup_claim)
                 
             try:
                 os.remove(path)
@@ -346,12 +347,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_photo(
                     chat_id=chat_id,
                     photo=open(path, 'rb'),
-                    caption=f"❌ **Gagal Memproses:**\n`{info}`",
-                    parse_mode="Markdown"
+                    caption=f"❌ <b>Gagal Memproses:</b>\n<pre>{info}</pre>",
+                    parse_mode="HTML"
                 )
                 os.remove(path)
             else:
-                await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ <b>Gagal Memproses:</b>\n<pre>{info}</pre>", parse_mode="HTML")
 
 @app.post("/")
 async def webhook(request: Request):
