@@ -128,7 +128,8 @@ class MailTMBot:
                                         clean_act = act_code.group(1).strip() if act_code else '-'
                                         
                                         extracted_info = (
-                                            "✅ Berhasil Claim Esim 50GB 7Hari\n"
+                                            "✅ Berhasil Claim Esim 50GB 7Hari\n\n"
+                                            "🧨 Detail Esim Kamu\n"
                                             f"MSISDN\t: {clean_msisdn}\n"
                                             f"Kode PUK\t: {clean_puk}\n"
                                             f"SM-DP+ Address\t: {clean_smdp}\n"
