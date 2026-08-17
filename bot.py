@@ -15,9 +15,15 @@ logger = logging.getLogger(__name__)
 
 TOKEN = "8667041464:AAEQKaDu1-JR7IwUOnnH-YNKUPXm6Hwlnw0"
 GROUP_ID = -1003971893833
+ADMIN_ID = 1564275538
 
 app = FastAPI()
 telegram_app = None
+
+# Menyimpan status loop aktif per chat_id agar bisa dihentikan jika diperlukan
+active_loops = set()
+# Menyimpan daftar ID user yang sudah di-approve untuk menggunakan fitur /loop
+approved_users = {ADMIN_ID}
 
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
@@ -281,7 +287,6 @@ async def process_xl_esim(chat_id, status_callback):
             return debug_path, str(e), None, None, None, None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Pastikan perintah benar-benar datang dari pesan teks /start
     if not update.message or not update.message.text:
         return
     
@@ -336,13 +341,119 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
+async def approve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+    
+    user = update.effective_user
+    if user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Perintah ini khusus untuk admin!")
+        return
+
+    if not context.args:
+        await update.message.reply_text("⚠️ Format salah! Gunakan: `/approve <idtelegram>`", parse_mode="Markdown")
+        return
+
+    try:
+        target_id = int(context.args[0])
+        approved_users.add(target_id)
+        await update.message.reply_text(f"✅ Berhasil meng-approve User ID `{target_id}` untuk menggunakan fitur `/loop`.", parse_mode="Markdown")
+    except ValueError:
+        await update.message.reply_text("❌ ID Telegram harus berupa angka (integer).")
+
+async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+    
+    user = update.effective_user
+    username = f"@{user.username}" if user.username else user.first_name
+    chat_id = update.effective_chat.id
+
+    if user.id not in approved_users:
+        await update.message.reply_text(f"⛔ Anda belum di-approve oleh admin untuk menggunakan fitur `/loop`.\nID Anda: `{user.id}`", parse_mode="Markdown")
+        return
+
+    if chat_id in active_loops:
+        await update.message.reply_text("⚠️ Looping pembuatan eSIM sudah berjalan di chat ini.")
+        return
+
+    active_loops.add(chat_id)
+    success_count = 0
+    target_success = 50
+
+    await update.message.reply_text(f"🔄 **Looping eSIM Dimulai!**\nTarget: {target_success} kali berhasil membuat eSIM.\nKirim /stop untuk menghentikan.")
+
+    while chat_id in active_loops and success_count < target_success:
+        msg = await update.message.reply_text(f"🚀 [Loop ke-{success_count + 1}] Memproses klaim eSIM...")
+
+        async def update_status(text):
+            try:
+                await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="Markdown")
+            except Exception:
+                pass
+
+        path, info, ms, pk, sm, ac = await process_xl_esim(chat_id, update_status)
+
+        if path and "esim_" in path and os.path.exists(path) and ms:
+            success_count += 1
+            caption = info
+            await context.bot.send_photo(
+                chat_id=chat_id, 
+                photo=open(path, 'rb'), 
+                caption=f"✅ **[Berhasil ke-{success_count}/{target_success}]**\n\n{caption}", 
+                parse_mode="Markdown"
+            )
+            
+            grup_text = (
+                f"Halo {username}\n\nEsim berhasil dibuat (Loop ke-{success_count})\n\nDetail eSIM Kamu\n"
+                f"MSISDN : {sensor_text(ms)}\n"
+                f"Kode PUK : {sensor_text(pk)}\n"
+                f"SM-DP+ Address : {sm}\n"
+                f"Activation Code : {sensor_text(ac)}\n\n"
+                f"Dibuat oleh: {username}\n"
+                "CREATED : @forariey\n"
+                "Donation : Dana : 082151916181"
+            )
+            await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
+            
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        else:
+            if path and os.path.exists(path):
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=open(path, 'rb'),
+                    caption=f"❌ **Gagal di Looping (Akan dilanjut):**\n`{info}`",
+                    parse_mode="Markdown"
+                )
+                os.remove(path)
+            else:
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal di Looping (Akan dilanjut):**\n`{info}`", parse_mode="Markdown")
+        
+        if chat_id in active_loops and success_count < target_success:
+            await asyncio.sleep(5)
+
+    if chat_id in active_loops:
+        active_loops.remove(chat_id)
+    
+    await update.message.reply_text(f"🏁 **Looping Selesai!** Berhasil membuat {success_count} eSIM.")
+
+async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id in active_loops:
+        active_loops.remove(chat_id)
+        await update.message.reply_text("🛑 Looping berhasil dihentikan!")
+    else:
+        await update.message.reply_text("⚠️ Tidak ada looping yang sedang aktif.")
+
 # Endpoint Webhook FastAPI yang aman dari trigger palsu/ping kosong
 @app.post("/")
 async def webhook(request: Request):
     global telegram_app
     try:
         data = await request.json()
-        # Filter ketat: Pastikan data update memiliki struktur pesan Telegram yang valid
         if "message" in data and "text" in data["message"]:
             update = Update.de_json(data, telegram_app.bot)
             if update and update.message:
@@ -360,6 +471,9 @@ async def startup_event():
     global telegram_app
     telegram_app = Application.builder().token(TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("approve", approve_command))
+    telegram_app.add_handler(CommandHandler("loop", loop_command))
+    telegram_app.add_handler(CommandHandler("stop", stop_command))
     await telegram_app.initialize()
     await telegram_app.start()
     logger.info("Bot Telegram webhook siap menerima koneksi di Railway...")
