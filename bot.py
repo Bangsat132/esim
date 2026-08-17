@@ -19,9 +19,6 @@ GROUP_ID = -1003971893833
 app = FastAPI()
 telegram_app = None
 
-# Set untuk melacak chat ID yang sedang aktif memproses (mencegah double-run / spam)
-active_users = set()
-
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
     return text[:-3] + "***"
@@ -284,79 +281,67 @@ async def process_xl_esim(chat_id, status_callback):
             return debug_path, str(e), None, None, None, None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Pastikan perintah benar-benar datang dari pesan teks /start
     if not update.message or not update.message.text:
         return
     
+    user = update.effective_user
+    username = f"@{user.username}" if user.username else user.first_name
     chat_id = update.effective_chat.id
+    msg = await update.message.reply_text("🚀 Bot Telegram aktif! Memproses klaim eSIM...")
     
-    # ── PENCEGAHAN DOUBLE RUN / LOOPING ──
-    if chat_id in active_users:
-        await update.message.reply_text("⚠️ Proses klaim sebelumnya masih berjalan, mohon tunggu hingga selesai.")
-        return
+    async def update_status(text):
+        try:
+            await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="Markdown")
+        except Exception:
+            pass
+
+    path, info, ms, pk, sm, ac = await process_xl_esim(chat_id, update_status)
     
-    active_users.add(chat_id)
-    # -------------------------------------
-
-    try:
-        user = update.effective_user
-        username = f"@{user.username}" if user.username else user.first_name
-        msg = await update.message.reply_text("🚀 Bot Telegram aktif! Memproses klaim eSIM...")
+    if path and "esim_" in path and os.path.exists(path):
+        caption = info
+        await context.bot.send_photo(
+            chat_id=chat_id, 
+            photo=open(path, 'rb'), 
+            caption=caption, 
+            parse_mode="Markdown"
+        )
         
-        async def update_status(text):
-            try:
-                await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="Markdown")
-            except Exception:
-                pass
-
-        path, info, ms, pk, sm, ac = await process_xl_esim(chat_id, update_status)
-        
-        if path and "esim_" in path and os.path.exists(path):
-            caption = info
+        if ms:
+            grup_text = (
+                f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
+                f"MSISDN : {sensor_text(ms)}\n"
+                f"Kode PUK : {sensor_text(pk)}\n"
+                f"SM-DP+ Address : {sm}\n"
+                f"Activation Code : {sensor_text(ac)}\n\n"
+                "CREATED : @forariey\n"
+                "Donation : Dana : 082151916181"
+            )
+            await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
+            
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+    else:
+        if path and os.path.exists(path):
             await context.bot.send_photo(
-                chat_id=chat_id, 
-                photo=open(path, 'rb'), 
-                caption=caption, 
+                chat_id=chat_id,
+                photo=open(path, 'rb'),
+                caption=f"❌ **Gagal Memproses:**\n`{info}`",
                 parse_mode="Markdown"
             )
-            
-            if ms:
-                grup_text = (
-                    f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
-                    f"MSISDN : {sensor_text(ms)}\n"
-                    f"Kode PUK : {sensor_text(pk)}\n"
-                    f"SM-DP+ Address : {sm}\n"
-                    f"Activation Code : {sensor_text(ac)}\n\n"
-                    "CREATED : @forariey\n"
-                    "Donation : Dana : 082151916181"
-                )
-                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
-                
-            try:
-                os.remove(path)
-            except Exception:
-                pass
+            os.remove(path)
         else:
-            if path and os.path.exists(path):
-                await context.bot.send_photo(
-                    chat_id=chat_id,
-                    photo=open(path, 'rb'),
-                    caption=f"❌ **Gagal Memproses:**\n`{info}`",
-                    parse_mode="Markdown"
-                )
-                os.remove(path)
-            else:
-                await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
-    
-    finally:
-        # Selalu lepaskan kunci active_users setelah proses selesai (sukses/gagal)
-        if chat_id in active_users:
-            active_users.remove(chat_id)
+            await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
+# Endpoint Webhook FastAPI yang aman dari trigger palsu/ping kosong
 @app.post("/")
 async def webhook(request: Request):
     global telegram_app
     try:
         data = await request.json()
+        # Filter ketat: Pastikan data update memiliki struktur pesan Telegram yang valid
         if "message" in data and "text" in data["message"]:
             update = Update.de_json(data, telegram_app.bot)
             if update and update.message:
