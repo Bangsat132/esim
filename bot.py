@@ -132,8 +132,8 @@ class MailTMBot:
                                             "🧨 Detail Esim Kamu\n"
                                             f"`MSISDN          : {clean_msisdn}`\n"
                                             f"`Kode PUK        : {clean_puk}`\n"
-                                            f"`SM-DP+ Address  : {clean_smdp}`\n"
-                                            f"`Activation Code : {clean_act}`\n\n"
+                                            f"`Address         : {clean_smdp}`\n"
+                                            f"`Activation      : {clean_act}`\n\n"
                                             "CREATED : @forariey"
                                         )
                                         return extracted_info, clean_msisdn, clean_puk, clean_smdp, clean_act
@@ -317,7 +317,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if path and "esim_" in path and os.path.exists(path):
             caption = info
-            keyboard_claim = [[InlineKeyboardButton("Register", url="https://registrasi.xl.co.id/biometric")]]
+            keyboard_claim = [[InlineKeyboardButton("🧩 Register Biometrik", url="https://registrasi.xl.co.id/biometric")]]
             reply_markup_claim = InlineKeyboardMarkup(keyboard_claim)
             await context.bot.send_photo(
                 chat_id=chat_id, 
@@ -332,8 +332,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
                     f"`MSISDN          : {sensor_text(ms)}`\n"
                     f"`Kode PUK        : {sensor_text(pk)}`\n"
-                    f"`SM-DP+ Address  : {sm}`\n"
-                    f"`Activation Code : {sensor_text(ac)}`\n\n"
+                    f"`Address         : {sm}`\n"
+                    f"`Activation      : {sensor_text(ac)}`\n\n"
                     f"Dibuat oleh: {username}\n"
                     "CREATED : @forariey\n"
                     "Donation : Dana : 082151916181"
@@ -391,7 +391,7 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if path and "esim_" in path and os.path.exists(path) and ms:
             success_count += 1
             caption = info
-            keyboard_claim = [[InlineKeyboardButton("Register", url="https://registrasi.xl.co.id/biometric")]]
+            keyboard_claim = [[InlineKeyboardButton("🧩 Register Biometrik", url="https://registrasi.xl.co.id/biometric")]]
             reply_markup_claim = InlineKeyboardMarkup(keyboard_claim)
             await context.bot.send_photo(
                 chat_id=chat_id, 
@@ -405,8 +405,8 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Halo {username}\n\nEsim berhasil dibuat (Loop ke-{success_count})\n\nDetail eSIM Kamu\n"
                 f"`MSISDN          : {sensor_text(ms)}`\n"
                 f"`Kode PUK        : {sensor_text(pk)}`\n"
-                f"`SM-DP+ Address  : {sm}`\n"
-                f"`Activation Code : {sensor_text(ac)}`\n\n"
+                f"`Address         : {sm}`\n"
+                f"`Activation      : {sensor_text(ac)}`\n\n"
                 f"Dibuat oleh: {username}\n"
                 "CREATED : @forariey\n"
                 "Donation : Dana : 082151916181"
