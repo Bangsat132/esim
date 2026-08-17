@@ -10,15 +10,18 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from playwright.async_api import async_playwright
 
+# Konfigurasi Log agar muncul di terminal
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 TOKEN = "8667041464:AAEQKaDu1-JR7IwUOnnH-YNKUPXm6Hwlnw0"
 GROUP_ID = -1003971893833
 
+# Inisialisasi FastAPI & Telegram App
 app = FastAPI()
 telegram_app = None
 
+# Fungsi sensor 3 karakter terakhir
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
     return text[:-3] + "***"
@@ -330,6 +333,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
+# Endpoint Webhook FastAPI untuk Railway
 @app.post("/")
 async def webhook(request: Request):
     global telegram_app
@@ -346,4 +350,3 @@ async def startup_event():
     await telegram_app.initialize()
     await telegram_app.start()
     logger.info("Bot Telegram webhook siap menerima koneksi di Railway...")
-    
