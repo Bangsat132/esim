@@ -127,10 +127,10 @@ class MailTMBot:
                                         extracted_info = (
                                             "✅ Berhasil Claim Esim 50GB 7Hari\n\n"
                                             "🧨 Detail Esim Kamu\n"
-                                            f"`MSISDN    : {clean_msisdn}`\n"
-                                            f"`PUK       : {clean_puk}`\n"
-                                            f"`Address   : {clean_smdp}`\n"
-                                            f"`Activation: {clean_act}`\n\n"
+                                            "`MSISDN    : " + clean_msisdn + "\n"
+                                            "PUK       : " + clean_puk + "\n"
+                                            "Address   : " + clean_smdp + "\n"
+                                            "Activation: " + clean_act + "`\n\n"
                                             "CREATED : @forariey"
                                         )
                                         return extracted_info, clean_msisdn, clean_puk, clean_smdp, clean_act
@@ -327,15 +327,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ms:
                 grup_text = (
                     f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
-                    f"`MSISDN    : {sensor_text(ms)}`\n"
-                    f"`PUK       : {sensor_text(pk)}`\n"
-                    f"`Address   : {sm}`\n"
-                    f"`Activation: {sensor_text(ac)}`\n\n"
+                    "`MSISDN    : " + sensor_text(ms) + "\n"
+                    "PUK       : " + sensor_text(pk) + "\n"
+                    "Address   : " + sm + "\n"
+                    "Activation: " + sensor_text(ac) + "`\n\n"
                     f"Dibuat oleh: {username}\n"
                     "CREATED : @forariey\n"
                     "Donation : Dana : 082151916181"
                 )
-                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, reply_markup=reply_markup_claim)
+                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, parse_mode="Markdown", reply_markup=reply_markup_claim)
                 
             try:
                 os.remove(path)
@@ -353,7 +353,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
-# Endpoint Webhook FastAPI yang aman dari trigger palsu/ping kosong
 @app.post("/")
 async def webhook(request: Request):
     global telegram_app
