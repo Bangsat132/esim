@@ -317,11 +317,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if path and "esim_" in path and os.path.exists(path):
             caption = info
+            keyboard_claim = [[InlineKeyboardButton("Register", url="https://registrasi.xl.co.id/biometric")]]
+            reply_markup_claim = InlineKeyboardMarkup(keyboard_claim)
             await context.bot.send_photo(
                 chat_id=chat_id, 
                 photo=open(path, 'rb'), 
                 caption=caption, 
-                parse_mode="Markdown"
+                parse_mode="Markdown",
+                reply_markup=reply_markup_claim
             )
             
             if ms:
@@ -335,7 +338,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "CREATED : @forariey\n"
                     "Donation : Dana : 082151916181"
                 )
-                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
+                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, reply_markup=reply_markup_claim)
                 
             try:
                 os.remove(path)
@@ -388,11 +391,14 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if path and "esim_" in path and os.path.exists(path) and ms:
             success_count += 1
             caption = info
+            keyboard_claim = [[InlineKeyboardButton("Register", url="https://registrasi.xl.co.id/biometric")]]
+            reply_markup_claim = InlineKeyboardMarkup(keyboard_claim)
             await context.bot.send_photo(
                 chat_id=chat_id, 
                 photo=open(path, 'rb'), 
                 caption=f"✅ **[Berhasil ke-{success_count}/{target_success}]**\n\n{caption}", 
-                parse_mode="Markdown"
+                parse_mode="Markdown",
+                reply_markup=reply_markup_claim
             )
             
             grup_text = (
@@ -405,7 +411,7 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "CREATED : @forariey\n"
                 "Donation : Dana : 082151916181"
             )
-            await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
+            await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, reply_markup=reply_markup_claim)
             
             try:
                 os.remove(path)
