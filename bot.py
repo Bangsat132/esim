@@ -6,8 +6,8 @@ import re
 import aiohttp
 import logging
 from fastapi import FastAPI, Request, Response
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from playwright.async_api import async_playwright
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -134,8 +134,7 @@ class MailTMBot:
                                             f"Kode PUK\t: {clean_puk}\n"
                                             f"SM-DP+ Address\t: {clean_smdp}\n"
                                             f"Activation Code\t: {clean_act}\n\n"
-                                            "CREATED : @forariey\n"
-                                            "Dana : 082151916181"
+                                            "CREATED : @forariey"
                                         )
                                         return extracted_info, clean_msisdn, clean_puk, clean_smdp, clean_act
                 except Exception as e:
@@ -286,59 +285,73 @@ async def process_xl_esim(chat_id, status_callback):
             return debug_path, str(e), None, None, None, None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
+    if not update.message:
         return
     
-    user = update.effective_user
-    username = f"@{user.username}" if user.username else user.first_name
-    chat_id = update.effective_chat.id
-    msg = await update.message.reply_text("🚀 Bot Telegram aktif! Memproses klaim eSIM...")
-    
-    async def update_status(text):
-        try:
-            await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="Markdown")
-        except Exception:
-            pass
+    keyboard = [
+        [InlineKeyboardButton("🚀 Mulai Claim", callback_data="start_claim")],
+        [InlineKeyboardButton("💖 Donasi", callback_data="donation")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("👋 Selamat datang di Bot Claim eSIM XL!\nSilakan pilih menu di bawah:", reply_markup=reply_markup)
 
-    path, info, ms, pk, sm, ac = await process_xl_esim(chat_id, update_status)
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
     
-    if path and "esim_" in path and os.path.exists(path):
-        caption = info
-        await context.bot.send_photo(
-            chat_id=chat_id, 
-            photo=open(path, 'rb'), 
-            caption=caption, 
-            parse_mode="Markdown"
-        )
+    if query.data == "donation":
+        await query.message.reply_text("Dana : 082151916181\nShopeepay : 082151916181")
+    elif query.data == "start_claim":
+        chat_id = query.message.chat.id
+        msg = await query.message.reply_text("🚀 Bot Telegram aktif! Memproses klaim eSIM...")
         
-        if ms:
-            grup_text = (
-                f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
-                f"MSISDN : {sensor_text(ms)}\n"
-                f"Kode PUK : {sensor_text(pk)}\n"
-                f"SM-DP+ Address : {sm}\n"
-                f"Activation Code : {sensor_text(ac)}\n\n"
-                f"Dibuat oleh: {username}\n"
-                "CREATED : @forariey\n"
-                "Donation : Dana : 082151916181"
-            )
-            await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
-            
-        try:
-            os.remove(path)
-        except Exception:
-            pass
-    else:
-        if path and os.path.exists(path):
+        async def update_status(text):
+            try:
+                await context.bot.edit_message_text(text=text, chat_id=chat_id, message_id=msg.message_id, parse_mode="Markdown")
+            except Exception:
+                pass
+
+        user = query.from_user
+        username = f"@{user.username}" if user.username else user.first_name
+        path, info, ms, pk, sm, ac = await process_xl_esim(chat_id, update_status)
+        
+        if path and "esim_" in path and os.path.exists(path):
+            caption = info
             await context.bot.send_photo(
-                chat_id=chat_id,
-                photo=open(path, 'rb'),
-                caption=f"❌ **Gagal Memproses:**\n`{info}`",
+                chat_id=chat_id, 
+                photo=open(path, 'rb'), 
+                caption=caption, 
                 parse_mode="Markdown"
             )
-            os.remove(path)
+            
+            if ms:
+                grup_text = (
+                    f"Halo {username}\n\nEsim berhasil dibuat\n\nDetail eSIM Kamu\n"
+                    f"MSISDN : {sensor_text(ms)}\n"
+                    f"Kode PUK : {sensor_text(pk)}\n"
+                    f"SM-DP+ Address : {sm}\n"
+                    f"Activation Code : {sensor_text(ac)}\n\n"
+                    f"Dibuat oleh: {username}\n"
+                    "CREATED : @forariey\n"
+                    "Donation : Dana : 082151916181"
+                )
+                await context.bot.send_message(chat_id=GROUP_ID, text=grup_text)
+                
+            try:
+                os.remove(path)
+            except Exception:
+                pass
         else:
-            await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
+            if path and os.path.exists(path):
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=open(path, 'rb'),
+                    caption=f"❌ **Gagal Memproses:**\n`{info}`",
+                    parse_mode="Markdown"
+                )
+                os.remove(path)
+            else:
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
 async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -356,7 +369,10 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     success_count = 0
     target_success = 50
 
-    await update.message.reply_text(f"🔄 **Looping eSIM Dimulai!**\nTarget: {target_success} kali berhasil membuat eSIM.\nKirim /stop untuk menghentikan.")
+    keyboard = [[InlineKeyboardButton("💖 Donasi", callback_data="donation")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(f"🔄 **Looping eSIM Dimulai!**\nTarget: {target_success} kali berhasil membuat eSIM.\nKirim /stop untuk menghentikan.", reply_markup=reply_markup)
 
     while chat_id in active_loops and success_count < target_success:
         msg = await update.message.reply_text(f"🚀 [Loop ke-{success_count + 1}] Memproses klaim eSIM...")
@@ -433,6 +449,10 @@ async def webhook(request: Request):
             update = Update.de_json(data, telegram_app.bot)
             if update and update.message:
                 await telegram_app.process_update(update)
+        elif "callback_query" in data:
+            update = Update.de_json(data, telegram_app.bot)
+            if update and update.callback_query:
+                await telegram_app.process_update(update)
     except Exception as e:
         logger.error(f"Error pada webhook: {e}")
     return {"status": "ok"}
@@ -448,6 +468,7 @@ async def startup_event():
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(CommandHandler("loop", loop_command))
     telegram_app.add_handler(CommandHandler("stop", stop_command))
+    telegram_app.add_handler(CallbackQueryHandler(button_handler))
     await telegram_app.initialize()
     await telegram_app.start()
     logger.info("Bot Telegram webhook siap menerima koneksi di Railway...")
