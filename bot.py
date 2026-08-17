@@ -289,8 +289,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     keyboard = [
-        [InlineKeyboardButton("🚀 Mulai Claim", callback_data="start_claim")],
-        [InlineKeyboardButton("💖 Donasi", callback_data="donation")]
+        [InlineKeyboardButton("🚀 Mulai Claim Esim", callback_data="start_claim")],
+        [InlineKeyboardButton("💰 Support Owner", callback_data="donation")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("👋 Selamat datang di Bot Claim eSIM XL!\nSilakan pilih menu di bawah:", reply_markup=reply_markup)
