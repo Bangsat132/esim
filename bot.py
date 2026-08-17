@@ -22,8 +22,6 @@ telegram_app = None
 
 # Menyimpan status loop aktif per chat_id agar bisa dihentikan jika diperlukan
 active_loops = set()
-# Menyimpan daftar ID user yang sudah di-approve untuk menggunakan fitur /loop
-approved_users = {ADMIN_ID}
 
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
@@ -341,26 +339,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await context.bot.send_message(chat_id=chat_id, text=f"❌ **Gagal Memproses:**\n`{info}`", parse_mode="Markdown")
 
-async def approve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message:
-        return
-    
-    user = update.effective_user
-    if user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ Perintah ini khusus untuk admin!")
-        return
-
-    if not context.args:
-        await update.message.reply_text("⚠️ Format salah! Gunakan: `/approve <idtelegram>`", parse_mode="Markdown")
-        return
-
-    try:
-        target_id = int(context.args[0])
-        approved_users.add(target_id)
-        await update.message.reply_text(f"✅ Berhasil meng-approve User ID `{target_id}` untuk menggunakan fitur `/loop`.", parse_mode="Markdown")
-    except ValueError:
-        await update.message.reply_text("❌ ID Telegram harus berupa angka (integer).")
-
 async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
@@ -368,10 +346,6 @@ async def loop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
     chat_id = update.effective_chat.id
-
-    if user.id not in approved_users:
-        await update.message.reply_text(f"⛔ Anda belum di-approve oleh admin untuk menggunakan fitur `/loop`.\nID Anda: `{user.id}`", parse_mode="Markdown")
-        return
 
     if chat_id in active_loops:
         await update.message.reply_text("⚠️ Looping pembuatan eSIM sudah berjalan di chat ini.")
@@ -471,7 +445,6 @@ async def startup_event():
     global telegram_app
     telegram_app = Application.builder().token(TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(CommandHandler("approve", approve_command))
     telegram_app.add_handler(CommandHandler("loop", loop_command))
     telegram_app.add_handler(CommandHandler("stop", stop_command))
     await telegram_app.initialize()
