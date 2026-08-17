@@ -126,7 +126,7 @@ class MailTMBot:
                                         
                                         extracted_info = (
                                             "✅ <b>Berhasil Claim Esim 50GB 7Hari</b>\n\n"
-                                            "🧨 <b>Detail Esim Kamu</b>\n"
+                                            "<b>Detail Esim Private Kamu</b>\n"
                                             "<pre>MSISDN     : " + clean_msisdn + "\n"
                                             "Kode PUK   : " + clean_puk + "\n"
                                             "Address    : " + clean_smdp + "\n"
@@ -328,7 +328,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 grup_text = (
                     f"👤 Halo {username}\n\n"
                     "✅ <b>Esim Berhasil Dibuat</b>\n\n"
-                    "🧨 <b>Detail eSIM Kamu</b>\n"
+                    "<b>Detail Esim Private Kamu</b>\n"
                     "<pre>MSISDN     : " + sensor_text(ms) + "\n"
                     "Kode PUK   : " + sensor_text(pk) + "\n"
                     "Address    : " + sm + "\n"
