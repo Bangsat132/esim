@@ -287,7 +287,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [InlineKeyboardButton("🚀 Mulai Claim Esim", callback_data="start_claim")],
-        [InlineKeyboardButton("💰 Support Owner", callback_data="donation")]
+        [InlineKeyboardButton("💰 Support Owner", callback_data="donation")],
+        [InlineKeyboardButton("Bot Alight Motion", url="https://t.me/amforariey_bot")],
+        [InlineKeyboardButton("Channel Update", url="https://t.me/forarieyproject")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("👋 Selamat datang di Bot Claim eSIM XL!\nSilakan pilih menu di bawah:", reply_markup=reply_markup)
