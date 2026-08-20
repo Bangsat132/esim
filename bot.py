@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 TOKEN = "8667041464:AAEQKaDu1-JR7IwUOnnH-YNKUPXm6Hwlnw0"
 GROUP_ID = -1003971893833
+CHANNEL_USERNAME = "@forarieyproject" 
 ADMIN_ID = 1564275538
 
 app = FastAPI()
@@ -23,6 +24,13 @@ telegram_app = None
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
     return text[:-3] + "***"
+
+async def is_user_joined(context, user_id):
+    try:
+        member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        return member.status in ['member', 'administrator', 'creator']
+    except Exception:
+        return False
 
 class MailTMBot:
     def __init__(self):
@@ -282,24 +290,55 @@ async def process_xl_esim(chat_id, status_callback):
             return debug_path, str(e), None, None, None, None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message:
+    user_id = update.effective_user.id
+    if not await is_user_joined(context, user_id):
+        keyboard = [
+            [InlineKeyboardButton("📢 Join Channel", url="https://t.me/forarieyproject")],
+            [InlineKeyboardButton("🔄 Cek Status Join", callback_data="check_join")]
+        ]
+        await update.message.reply_text(
+            "⚠️ <b>Akses Ditolak!</b>\n\n"
+            "Anda belum bergabung di channel kami. Silakan klik tombol di bawah untuk join:",
+            reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+        )
         return
-    
+
     keyboard = [
         [InlineKeyboardButton("🚀 Mulai Claim Esim", callback_data="start_claim")],
+        [InlineKeyboardButton("💰 Support Owner", callback_data="donation")],
         [InlineKeyboardButton("🎦 Bot Alight Motion", url="https://t.me/amforariey_bot")],
         [InlineKeyboardButton("🗨️ Channel Update", url="https://t.me/forarieyproject")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("👋 Selamat datang di Bot Claim eSIM XL!\nSilakan pilih menu di bawah:", reply_markup=reply_markup)
+    await update.message.reply_text("👋 <b>Selamat datang di Bot Claim eSIM XL!</b>\nSilakan pilih menu di bawah:", 
+                                   reply_markup=reply_markup, parse_mode="HTML")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = query.from_user.id
     
-    if query.data == "donation":
+    if query.data == "check_join":
+        if await is_user_joined(context, user_id):
+            keyboard = [
+                [InlineKeyboardButton("🚀 Mulai Claim Esim", callback_data="start_claim")],
+                [InlineKeyboardButton("💰 Support Owner", callback_data="donation")],
+                [InlineKeyboardButton("🎦 Bot Alight Motion", url="https://t.me/amforariey_bot")],
+                [InlineKeyboardButton("🗨️ Channel Update", url="https://t.me/forarieyproject")]
+            ]
+            await query.edit_message_text("✅ <b>Terima kasih!</b> Anda telah bergabung.\nSilakan gunakan fitur bot:", 
+                                          reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        else:
+            await query.answer("❌ Anda belum bergabung di channel, silakan klik tombol Join!", show_alert=True)
+
+    elif query.data == "donation":
         await query.message.reply_text("Dana : 082151916181\nShopeepay : 082151916181")
+        
     elif query.data == "start_claim":
+        if not await is_user_joined(context, user_id):
+            await query.message.reply_text("⚠️ Silakan join channel @forarieyproject terlebih dahulu!")
+            return
+
         chat_id = query.message.chat.id
         msg = await query.message.reply_text("🚀 Bot Telegram aktif! Memproses klaim eSIM...")
         
