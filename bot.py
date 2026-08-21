@@ -21,6 +21,9 @@ ADMIN_ID = 1564275538
 app = FastAPI()
 telegram_app = None
 
+# Variabel global untuk melacak status loop aktif per chat/user
+active_loops = set()
+
 def sensor_text(text):
     if not text or len(text) <= 3: return "***"
     return text[:-3] + "***"
@@ -305,6 +308,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton("🚀 Mulai Claim Esim", callback_data="start_claim")],
+        [InlineKeyboardButton("🔄 Claim Loop", callback_data="start_claim_loop")],
         [InlineKeyboardButton("💰 Support Owner", callback_data="donation")],
         [InlineKeyboardButton("🎦 Bot Alight Motion", url="https://t.me/amforariey_bot")],
         [InlineKeyboardButton("🗨️ Channel Update", url="https://t.me/forarieyproject")]
@@ -312,6 +316,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("👋 <b>Selamat datang di Bot Claim eSIM XL!</b>\nSilakan pilih menu di bawah:", 
                                    reply_markup=reply_markup, parse_mode="HTML")
+
+async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id in active_loops:
+        active_loops.remove(chat_id)
+        await update.message.reply_text("🛑 <b>Claim Loop berhasil dihentikan!</b>", parse_mode="HTML")
+    else:
+        await update.message.reply_text("⚠️ Tidak ada proses Claim Loop yang sedang berjalan.", parse_mode="HTML")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -322,6 +334,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if await is_user_joined(context, user_id):
             keyboard = [
                 [InlineKeyboardButton("🚀 Mulai Claim Esim", callback_data="start_claim")],
+                [InlineKeyboardButton("🔄 Claim Loop", callback_data="start_claim_loop")],
                 [InlineKeyboardButton("💰 Support Owner", callback_data="donation")],
                 [InlineKeyboardButton("🎦 Bot Alight Motion", url="https://t.me/amforariey_bot")],
                 [InlineKeyboardButton("🗨️ Channel Update", url="https://t.me/forarieyproject")]
@@ -334,6 +347,82 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "donation":
         await query.message.reply_text("Dana : 082151916181\nShopeepay : 082151916181")
         
+    elif query.data == "start_claim_loop":
+        if not await is_user_joined(context, user_id):
+            await query.message.reply_text("⚠️ Silakan join channel @forarieyproject terlebih dahulu!")
+            return
+
+        chat_id = query.message.chat.id
+        if chat_id in active_loops:
+            await query.message.reply_text("⚠️ Claim Loop sudah berjalan di chat ini! Kirim /stop untuk menghentikan.")
+            return
+
+        active_loops.add(chat_id)
+        await query.message.reply_text("🔄 <b>Claim Loop diaktifkan!</b> Bot akan melakukan klaim eSIM secara terus-menerus.\nKetik /stop kapan saja untuk menghentikan.", parse_mode="HTML")
+
+        loop_count = 1
+        while chat_id in active_loops:
+            msg = await context.bot.send_message(chat_id=chat_id, text=f"🚀 <b>[Loop ke-{loop_count}]</b> Memulai proses klaim eSIM...", parse_mode="HTML")
+            
+            async def update_status(text):
+                try:
+                    await context.bot.edit_message_text(text=f"<b>[Loop ke-{loop_count}]</b>\n{text}", chat_id=chat_id, message_id=msg.message_id, parse_mode="HTML")
+                except Exception:
+                    pass
+
+            user = query.from_user
+            username = f"@{user.username}" if user.username else user.first_name
+            path, info, ms, pk, sm, ac = await process_xl_esim(chat_id, update_status)
+            
+            if chat_id not in active_loops:
+                break
+
+            if path and "esim_" in path and os.path.exists(path):
+                caption = info
+                keyboard_claim = [[InlineKeyboardButton("🧩 Register Biometrik", url="https://registrasi.xl.co.id")]]
+                reply_markup_claim = InlineKeyboardMarkup(keyboard_claim)
+                await context.bot.send_photo(
+                    chat_id=chat_id, 
+                    photo=open(path, 'rb'), 
+                    caption=caption, 
+                    parse_mode="HTML",
+                    reply_markup=reply_markup_claim
+                )
+                
+                if ms:
+                    grup_text = (
+                        f"👤 Halo {username}\n\n"
+                        "✅ <b>Esim Berhasil Dibuat</b>\n\n"
+                        "<b>Detail Esim Private Kamu</b>\n"
+                        "<pre>MSISDN     : " + sensor_text(ms) + "\n"
+                        "Kode PUK   : " + sensor_text(pk) + "\n"
+                        "Address    : " + sm + "\n"
+                        "Activation : " + sensor_text(ac) + "\n\n"
+                        "CREATED    : @forariey\n"
+                        "Donation   : 082151916181</pre>"
+                    )
+                    await context.bot.send_message(chat_id=GROUP_ID, text=grup_text, parse_mode="HTML", reply_markup=reply_markup_claim)
+                    
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+            else:
+                if path and os.path.exists(path):
+                    await context.bot.send_photo(
+                        chat_id=chat_id,
+                        photo=open(path, 'rb'),
+                        caption=f"❌ <b>Gagal Memproses (Loop {loop_count}):</b>\n<pre>{info}</pre>",
+                        parse_mode="HTML"
+                    )
+                    os.remove(path)
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text=f"❌ <b>Gagal Memproses (Loop {loop_count}):</b>\n<pre>{info}</pre>", parse_mode="HTML")
+
+            loop_count += 1
+            if chat_id in active_loops:
+                await asyncio.sleep(5) # Jeda antar loop agar tidak terlalu spam
+
     elif query.data == "start_claim":
         if not await is_user_joined(context, user_id):
             await query.message.reply_text("⚠️ Silakan join channel @forarieyproject terlebih dahulu!")
@@ -420,6 +509,7 @@ async def startup_event():
     global telegram_app
     telegram_app = Application.builder().token(TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("stop", stop_command))
     telegram_app.add_handler(CallbackQueryHandler(button_handler))
     await telegram_app.initialize()
     await telegram_app.start()
