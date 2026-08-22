@@ -13,7 +13,7 @@ from playwright.async_api import async_playwright
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-TOKEN = "8667041464:AAEQKaDu1-JR7IwUOnnH-YNKUPXm6Hwlnw0"
+TOKEN = "BOT_TOKENMU"
 GROUP_ID = -1003971893833
 CHANNEL_USERNAME = "@forarieyproject" 
 ADMIN_ID = 1564275538
