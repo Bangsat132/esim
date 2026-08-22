@@ -13,10 +13,10 @@ from playwright.async_api import async_playwright
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-TOKEN = "BOT_TOKENMU"
+TOKEN = "8883117145:AAEeGoXbJs8W3XBsei3DGxrULfwzI_tvA30"
 GROUP_ID = -1003971893833
 CHANNEL_USERNAME = "@forarieyproject" 
-ADMIN_ID = 1564275538
+ADMIN_ID = 8322494186
 
 app = FastAPI()
 telegram_app = None
