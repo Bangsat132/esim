@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 TOKEN = "8883117145:AAEeGoXbJs8W3XBsei3DGxrULfwzI_tvA30"
 GROUP_ID = -1004295935594
-CHANNEL_USERNAME = "ogikkece" 
+CHANNEL_USERNAME = "@ogikkece" 
 ADMIN_ID = 8322494186
 
 app = FastAPI()
